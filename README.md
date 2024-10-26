@@ -87,7 +87,8 @@ nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE).runCmd(listChain).asMap(); //
 
 // libnftables can also be configured to output JSON. 
 // See `man libnftables-json` for a description of the schema
-nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_JSON).runCmd(listChain).asObject();
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_JSON, NFT_FLAGS.OUTPUT_NUMERIC_ALL);
+nftContext.runCmd(listChain).asObject();
 >>> {
     nftables: [
         { metainfo: [Object] },
