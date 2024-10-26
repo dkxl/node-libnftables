@@ -115,6 +115,12 @@ try to use multiple libnftables contexts, or if you create and release libnftabl
 
 All methods throw an Error if a command is not accepted by libnftables. The Error type and message may contain further information.
 
+Most methods are chainable:
+```js
+let ruleset = nftContext.setOutputFlags('NFT_FLAGS.TERSE').runCmd('list ruleset').asArray();
+```
+
+
 ## LibNftablesContext
 
 ### Constructor
