@@ -1,6 +1,8 @@
-# linux-nftables
-A native node add-on to view and modify nftables firewall rulesets on Linux.
+# linux-libnftables
+ABI stable native bindings to `libnftables`, to view and modify nftables firewall rulesets on Linux.
 For example, to build a paywall or a Wi-Fi hotspot. 
+
+Uses `node-addon-api` and `cmake-js` to compile and link to `libnftables` on your platform.
 
 If you only want to deploy static nftables firewall rules then this is probably not the tool you need. 
 E.g. on Debian just add the ruleset to /etc/nftables.conf, and Debian will re-install the rules on boot.
@@ -44,7 +46,7 @@ linked to libnftables and node is running as a user with sufficient privileges t
 sudo npm test
 ```
 
-## Examples
+## Usage Examples
 ```js
 const { LibNftablesContext, NFT_FLAGS } = require('linux-libnftables');
 const nftContext = new LibNftablesContext();
@@ -115,15 +117,24 @@ rs.nftables[0]
 
 ```
 
-## Class LibNftablesContext
+# Exports
 
-One libnftables context should be sufficient for most use cases. You may encounter  NF_NETLINK resource issues if you
-try to use multiple libnftables contexts, or if you create and release libnftables contexts too rapidly.
+```js
+const { LibNftablesContext, NFT_FLAGS } = require('linux-libnftables');
+```
 
-All methods throw an Error if the command is not accepted by libnftables. The Error type and message may contain further information.
+## LibNftablesContext
 
 ### Constructor
 Creates a new libnftables context
+
+```js
+const nftContext = new LibNftablesContext();
+```
+One libnftables context should be sufficient for most use cases. You may encounter  NF_NETLINK resource issues if you
+try to use multiple libnftables contexts, or if you create and release libnftables contexts too rapidly.
+
+All methods throw an Error if a command is not accepted by libnftables. The Error type and message may contain further information.
 
 ### runCmd (nftCommand)
 Run nftables command(s), similar to using "nft -i".
@@ -138,15 +149,27 @@ Multiple command lines can be sent, delimited by the newline character (\n)
 
 @throws {Error} nftables rejected a command
 
+```js
+nftContext.runCmd('add rule ip filter input ct state established,related accept');
+```
+
 ### asString ()
 Returns the last nftables response as a string, including any tabs (\t) and newline (\n) characters
 
 @returns {string}
 
+```js
+nftContext.runCmd('list chain ip filter input').asString();
+```
+
 ### asArray ()
 Returns the last nftables response as an array of response lines, filtered to omit tabs, braces and empty lines
 
 @returns {string[]}
+
+```js
+nftContext.runCmd('list chain ip filter input').asArray();
+```
 
 ### asMap ()
 Returns the last nftables response as a Map object with nftables handles for each rule.
@@ -155,6 +178,11 @@ You can use the nftables handle to delete a rule.
 Note: Requires that the OUTPUT_HANDLE flag has been set, else the map will be empty
 
 @returns Map { handle: rule }
+
+```js
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE);
+nftContext.runCmd('list chain ip filter input').asMap();
+```
 
 ### asObject ()
 Parses the last response from nftables as JSON and returns the response as an object.
@@ -166,6 +194,10 @@ See libnftables-json(5) for a description of the supported schema.
 
 @throws {SyntaxError} libnftables did not return valid JSON
 
+```js
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_JSON);
+nftContext.runCmd('list chain ip filter input').asObject();
+```
 
 ### setOutputFlags (flag1, flag2, ...)
 Set output flags for the libnftables context. See NFT_FLAGS for the valid flag values.
@@ -178,9 +210,6 @@ Overwrites any previous flag settings.
 @throws {Error} invalid flag values
 
 ```js
-const { LibNftablesContext, NFT_FLAGS } = require('linux-libnftables');
-const nftContext = new LibNftablesContext();
-
 // Output ruleset handles, numeric output, omit contents of sets. All other flags are cleared.
 nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE, NFT_FLAGS.OUTPUT_NUMERIC_ALL, NFT_FLAGS.OUTPUT_TERSE);
 ```
@@ -192,6 +221,12 @@ Set Dry Run Mode. When Dry Run is enabled libnftables will parse commands, but w
 
 @returns {LibNftablesContext}
 
+```js
+nftContext.dryRun(true);
+nftContext.runCmd('add rule ip filter input ip saddr 127.0.0.0/8 accept');
+nftContext.dryRun(false);
+```
+
 ### refreshContext ()
 Refresh the libnftables context. You may need this to make sure ruleset counters have been updated.
 Releases the current libnftables context and creates a new context with the same output flags.
@@ -201,9 +236,18 @@ Not needed unless your counters are not updating frequently enough.
 
 @throws {Error} unable to create the new context
 
+```js
+nftContext.refreshContext();
+```
 
 ## NFT_FLAGS
-A helper object that provides the nftables output control flags for the installed version of libnftables
+A helper object that provides values of the nftables output control flags for the installed version of libnftables
+
+```js
+// Configure the libnftables context to output ruleset handles, numeric output, omit contents of sets. 
+// All other flags are cleared.
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE, NFT_FLAGS.OUTPUT_NUMERIC_ALL, NFT_FLAGS.OUTPUT_TERSE);
+```
 
 ### OUTPUT_DEFAULT
 Restore the default output settings for the installed version of libnftables

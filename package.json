@@ -6,14 +6,23 @@
   },
   "name": "linux-libnftables",
   "version": "1.0.0",
-  "private": true,
-  "description": "Native bindings for libnftables on Linux",
+  "description": "Native bindings for libnftables, to view and modify nftables firewall rulesets on Linux",
+  "keywords": [
+    "libnftables",
+    "nftables",
+    "firewall",
+    "linux",
+    "n-api",
+    "node-addon-api",
+    "cmake-js"
+  ],
   "author": "David Harrold",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "https://github.com/dkxl/node-libnftables.git"
   },
+  "homepage": "https://github.com/dkxl/node-libnftables#readme",
   "binary": {
     "napi_versions": [
       3
@@ -21,9 +30,7 @@
   },
   "dependencies": {
     "bindings": "~1.5.0",
-    "node-addon-api": "^8.1.0"
-  },
-  "devDependencies": {
+    "node-addon-api": "^8.1.0",
     "cmake-js": "^7.3.0"
   }
 }
