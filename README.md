@@ -1,4 +1,4 @@
-# linux-libnftables
+# node-libnftables
 ABI stable native bindings to `libnftables`, to view and modify nftables firewall rulesets on Linux.
 For example, to build a paywall or a Wi-Fi hotspot. 
 
@@ -48,7 +48,7 @@ sudo npm test
 
 ## Usage Examples
 ```js
-const { LibNftablesContext, NFT_FLAGS } = require('linux-libnftables');
+const { LibNftablesContext, NFT_FLAGS } = require('node-libnftables');
 const nftContext = new LibNftablesContext();
 
 let baseRuleSet = [
@@ -64,23 +64,19 @@ for (const rule of baseRuleSet) {
     nftContext.runCmd(rule);
 }
 
-nftContext.runCmd('list ruleset').asArray();  // returns an array of [rules]
+let listChain = 'list chain ip paywall forward'; // see `man nft` for syntax
+
+nftContext.runCmd(listChain).asArray();  // returns an array of [rules]
 >>> [
-    'table ip paywall  # handle 32',
-    'set authorised  # handle 2',
-    'type ipv4_addr',
-    'flags interval',
-    'elements =  10.1.2.3, 10.1.2.4,',
-    '     192.168.1.0/24 ',
-    'chain forward  # handle 1',
+    'table ip paywall ',
+    'chain forward ',
     'type filter hook forward priority filter; policy drop;',
-    'ip saddr @authorised accept # handle 3',
-    'ip daddr @authorised ct state established,related accept # handle 4'
+    'ip saddr @authorised accept',
+    'ip daddr @authorised ct state established,related accept'
 ]
 
-
-nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE); // include ruleset handles in the output
-nftContext.runCmd('list ruleset').asMap();  // returns a Map of { handle: rule }
+// include ruleset handles in the output, and return results as a Map of { handle: rule }
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_HANDLE).runCmd(listChain).asMap(); // most methods are chainable
 >>> Map(5) {
     '32' => 'table ip paywall',
         '2' => 'set authorised',
@@ -89,39 +85,34 @@ nftContext.runCmd('list ruleset').asMap();  // returns a Map of { handle: rule }
         '4' => 'ip daddr @authorised ct state established,related accept'
 }
 
-
-nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_JSON, NFT_FLAGS.OUTPUT_HANDLE); // JSON format, including ruleset handles
-let rs = nftContext.runCmd('list ruleset').asObject();
-rs
+// libnftables can also be configured to output JSON. 
+// See `man libnftables-json` for a description of the schema
+nftContext.setOutputFlags(NFT_FLAGS.OUTPUT_JSON).runCmd(listChain).asObject();
 >>> {
     nftables: [
         { metainfo: [Object] },
-        { table: [Object] },
-        { set: [Object] },
         { chain: [Object] },
-        { rule: [Object] },
-        { rule: [Object] },
         { rule: [Object] },
         { rule: [Object] }
     ]
 }
-rs.nftables[0]
->>> {
-    metainfo: {
-        version: '1.0.6',
-            release_name: 'Lester Gooch #5',
-            json_schema_version: 1
-    }
-}
-
-
 ```
 
-# Exports
+# Usage
+The module exports a class that creates a libnftables context and provides some helper methods to run nftables commands
+and parse the output. 
+
+The module also exports an object containing the output control flags for the installed version of libnftables.
 
 ```js
-const { LibNftablesContext, NFT_FLAGS } = require('linux-libnftables');
+const { LibNftablesContext, NFT_FLAGS } = require('node-libnftables');
+const nftContext = new LibNftablesContext();
 ```
+
+One libnftables context should be sufficient for most use cases. You may encounter  NF_NETLINK resource issues if you
+try to use multiple libnftables contexts, or if you create and release libnftables contexts too rapidly.
+
+All methods throw an Error if a command is not accepted by libnftables. The Error type and message may contain further information.
 
 ## LibNftablesContext
 
@@ -131,10 +122,6 @@ Creates a new libnftables context
 ```js
 const nftContext = new LibNftablesContext();
 ```
-One libnftables context should be sufficient for most use cases. You may encounter  NF_NETLINK resource issues if you
-try to use multiple libnftables contexts, or if you create and release libnftables contexts too rapidly.
-
-All methods throw an Error if a command is not accepted by libnftables. The Error type and message may contain further information.
 
 ### runCmd (nftCommand)
 Run nftables command(s), similar to using "nft -i".
@@ -150,11 +137,11 @@ Multiple command lines can be sent, delimited by the newline character (\n)
 @throws {Error} nftables rejected a command
 
 ```js
-nftContext.runCmd('add rule ip filter input ct state established,related accept');
+nftContext.runCmd('add rule ip filter input iif lo accept');
 ```
 
 ### asString ()
-Returns the last nftables response as a string, including any tabs (\t) and newline (\n) characters
+Returns the last nftables response as a raw string, including any tabs (\t) and newline (\n) characters
 
 @returns {string}
 
@@ -202,6 +189,7 @@ nftContext.runCmd('list chain ip filter input').asObject();
 ### setOutputFlags (flag1, flag2, ...)
 Set output flags for the libnftables context. See NFT_FLAGS for the valid flag values.
 Overwrites any previous flag settings.
+Flag values persist for the lifetime of the context unless overwritten by a new call to setOutputFlags().
 
 @param {...int} flags - one or more output flags to set. All other flags will be cleared.
 

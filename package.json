@@ -4,7 +4,7 @@
     "install": "cmake-js compile",
     "test": "node ./test/test_binding.js"
   },
-  "name": "linux-libnftables",
+  "name": "node-libnftables",
   "version": "1.0.0",
   "description": "Native bindings for libnftables, to view and modify nftables firewall rulesets on Linux",
   "keywords": [
